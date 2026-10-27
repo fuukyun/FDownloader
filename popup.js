@@ -60,6 +60,11 @@ function render(data, tabId) {
 async function load() {
   $status.textContent = 'Đang tìm video…';
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (/^https:\/\/(www|m)\.youtube\.com\//.test(tab?.url || '')) {
+    $status.textContent = 'Trên YouTube, hãy bấm nút tải ở góc trên bên phải video (hoặc phía trên nút Thích trên Shorts).';
+    $list.textContent = '';
+    return;
+  }
   if (!tab?.url || !/^https:\/\/([a-z0-9-]+\.)*facebook\.com\//.test(tab.url)) {
     $status.textContent = 'Hãy mở một trang Facebook có video.';
     $list.textContent = '';

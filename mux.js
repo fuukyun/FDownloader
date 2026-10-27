@@ -1,5 +1,5 @@
 // Minimal fragmented-MP4 muxer: merges a video-only and an audio-only DASH file
-// (as served by Facebook) into a single MP4 with two tracks. No re-encoding.
+// (from Facebook, or captured from YouTube's player) into a single MP4 with two tracks. No re-encoding.
 (function (global) {
   const CONTAINERS = new Set(['moov', 'trak', 'mdia', 'minf', 'stbl', 'mvex', 'moof', 'traf', 'edts']);
 
@@ -109,14 +109,35 @@
       }
     }
 
-    return { u8, ftyp, mvhd, trak, tkhd, trex, frags, durationSec: movieTimescale ? movieDuration / movieTimescale : 0 };
+    return { u8, ftyp, mvhd, trak, tkhd, trex, frags, movieTimescale, durationSec: movieTimescale ? movieDuration / movieTimescale : 0 };
   }
 
-  function retrackTrak(src, trackId) {
+  // Sets the track ID and moves durations given in the source's movie timescale (tkhd,
+  // elst) onto the output's, which is the video file's.
+  function retrackTrak(src, trackId, outTimescale) {
     const { u8, trak, tkhd } = src;
     const e = editable(u8, trak);
+    const scale = (v) => (src.movieTimescale ? Math.round((v * outTimescale) / src.movieTimescale) : 0);
     const v1 = u8[tkhd.start + tkhd.header] === 1;
-    e.u32(tkhd.start + tkhd.header + 4 + (v1 ? 16 : 8), trackId);
+    const idOff = tkhd.start + tkhd.header + 4 + (v1 ? 16 : 8);
+    e.u32(idOff, trackId);
+    if (v1) e.u64(idOff + 8, scale(e.getU64(idOff + 8)));
+    else e.u32(idOff + 8, Math.min(scale(e.getU32(idOff + 8)), 0xffffffff));
+
+    // The last edit gets duration 0 ("to the end of the track", as fMP4 allows). With its
+    // real duration Windows (Media Foundation) refuses to decode the H.264 track.
+    const elst = find(u8, trak, ['edts', 'elst']);
+    if (elst) {
+      const ev1 = u8[elst.start + elst.header] === 1;
+      const count = e.getU32(elst.start + elst.header + 4);
+      const size = ev1 ? 20 : 12;
+      for (let i = 0; i < count; i++) {
+        const off = elst.start + elst.header + 8 + i * size;
+        const dur = i === count - 1 ? 0 : scale(ev1 ? e.getU64(off) : e.getU32(off));
+        if (ev1) e.u64(off, dur);
+        else e.u32(off, Math.min(dur, 0xffffffff));
+      }
+    }
     return e.bytes;
   }
 
@@ -175,8 +196,8 @@
 
     const moov = makeBox('moov', [
       buildMvhd(video, Math.max(video.durationSec, audio.durationSec)),
-      retrackTrak(video, 1),
-      retrackTrak(audio, 2),
+      retrackTrak(video, 1, video.movieTimescale),
+      retrackTrak(audio, 2, video.movieTimescale),
       makeBox('mvex', [retrackTrex(video, 1), retrackTrex(audio, 2)]),
     ]);
 

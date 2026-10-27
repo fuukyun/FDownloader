@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "FDownloader - Facebook Video Downloader",
-  "version": "1.1.0",
-  "description": "Tải video Facebook với chất lượng cao nhất (tự ghép hình + tiếng từ luồng DASH).",
+  "name": "FDownloader - Facebook & YouTube Video Downloader",
+  "version": "1.2.0",
+  "description": "Tải video Facebook và YouTube với chất lượng cao nhất (tự ghép hình + tiếng).",
   "permissions": ["downloads", "storage"],
   "host_permissions": [
     "https://*.facebook.com/*",
@@ -18,7 +18,7 @@
   "content_scripts": [
     {
       "matches": ["https://*.facebook.com/*"],
-      "js": ["options.js", "inject.js"],
+      "js": ["options.js", "ui.js", "facebook.js"],
       "run_at": "document_start",
       "world": "MAIN"
     },
@@ -26,6 +26,12 @@
       "matches": ["https://*.facebook.com/*"],
       "js": ["content.js"],
       "run_at": "document_start"
+    },
+    {
+      "matches": ["https://www.youtube.com/*", "https://m.youtube.com/*"],
+      "js": ["options.js", "mux.js", "ui.js", "youtube.js"],
+      "run_at": "document_start",
+      "world": "MAIN"
     }
   ]
 }

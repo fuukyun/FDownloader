@@ -1,4 +1,4 @@
-// Shared by the page script (inject.js) and the popup: turns a captured video
+// Shared by the page scripts (facebook.js, youtube.js) and the popup: turns a captured video
 // record into a list of download choices, best first.
 (function (g) {
   const CODECS = { av01: 'AV1', vp09: 'VP9', avc1: 'H.264', avc3: 'H.264', hvc1: 'H.265', hev1: 'H.265' };
@@ -14,7 +14,7 @@
         .replace(/\s+/g, ' ')
         .trim()
         .slice(0, 80)
-        .trim() || 'facebook_video'
+        .trim() || 'video'
     );
   }
 
@@ -50,5 +50,5 @@
     return { ...opt.job, videoId: v.id, filename: `${base} [${opt.job.quality}].${ext}` };
   }
 
-  g.FDLOptions = { buildOptions, makeJob, fmtCodec };
+  g.FDLOptions = { buildOptions, makeJob, fmtCodec, sanitize };
 })(globalThis);

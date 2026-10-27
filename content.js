@@ -1,4 +1,4 @@
-// Isolated-world bridge between inject.js (page), the popup and the extension.
+// Isolated-world bridge between facebook.js (page), the popup and the extension.
 let latest = { videos: [], currentId: null };
 
 window.addEventListener('message', (e) => {
